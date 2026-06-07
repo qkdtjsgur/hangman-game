@@ -1,0 +1,355 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1.0"/>
+<title>한국어 행맨</title>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;600;700;900&display=swap" rel="stylesheet"/>
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --bg:#1a1a2e;--surface:#16213e;--card:#0f3460;
+  --text:#eaeaea;--muted:#8888aa;
+  --yellow:#f5c842;--green:#2ecc71;--red:#e74c3c;--blue:#4fc3f7;
+  --key-bg:#2a2a4a;--key-border:#4444aa;
+  --accent:#7f5af0;
+}
+body{background:var(--bg);color:var(--text);font-family:'Noto Sans KR',sans-serif;min-height:100vh;display:flex;flex-direction:column;align-items:center;}
+
+/* 헤더 */
+header{width:100%;background:var(--surface);border-bottom:2px solid var(--card);padding:14px 24px;display:flex;align-items:center;justify-content:space-between;}
+header h1{font-size:22px;font-weight:900;letter-spacing:3px;color:var(--yellow);}
+header h1 span{color:var(--accent);}
+#new-btn{background:var(--accent);color:#fff;border:none;border-radius:8px;padding:8px 20px;font-size:14px;font-family:'Noto Sans KR',sans-serif;font-weight:700;cursor:pointer;}
+#new-btn:hover{opacity:0.85;}
+
+/* 메인 레이아웃 */
+#main{width:100%;max-width:900px;padding:20px 16px;display:flex;gap:20px;flex:1;}
+
+/* 왼쪽: 게임 영역 */
+#game-area{flex:1;display:flex;flex-direction:column;gap:16px;}
+
+/* 정보 카드 */
+#info-card{background:var(--surface);border-radius:14px;padding:18px 22px;border:1px solid var(--card);}
+#topic-line{font-size:26px;font-weight:900;color:var(--yellow);margin-bottom:8px;}
+#lives-line{font-size:18px;font-weight:700;}
+#lives-line span{font-size:22px;font-weight:900;}
+
+/* 자모 칸 */
+#jamo-area{background:var(--surface);border-radius:14px;padding:22px;border:1px solid var(--card);min-height:110px;display:flex;flex-wrap:wrap;gap:10px;align-items:center;justify-content:center;}
+.char-group{display:flex;gap:4px;align-items:flex-end;}
+.jamo-tile{
+  width:42px;height:54px;
+  background:var(--card);border:2px solid #334;
+  border-radius:8px;display:flex;align-items:center;justify-content:center;
+  font-size:22px;font-weight:700;color:var(--muted);
+  transition:all 0.25s;
+}
+.jamo-tile.revealed{color:var(--yellow);border-color:var(--yellow);background:#1a1a3e;}
+.jamo-tile.correct-end{color:var(--green);border-color:var(--green);animation:popIn 0.3s ease;}
+@keyframes popIn{0%{transform:scale(0.7)}60%{transform:scale(1.15)}100%{transform:scale(1)}}
+
+/* 구분선 (글자 사이) */
+.char-sep{width:6px;}
+
+/* 상태 메시지 */
+#status{text-align:center;font-size:20px;font-weight:700;min-height:32px;padding:4px;}
+
+/* 틀린 자모 목록 */
+#wrong-area{background:var(--surface);border-radius:14px;padding:14px 18px;border:1px solid var(--card);}
+#wrong-title{font-size:13px;color:var(--muted);margin-bottom:8px;}
+#wrong-list{display:flex;flex-wrap:wrap;gap:6px;min-height:28px;}
+.wrong-badge{background:#3a1a1a;border:1px solid var(--red);border-radius:6px;padding:3px 10px;font-size:15px;font-weight:700;color:var(--red);}
+
+/* 오른쪽: 키보드 */
+#keyboard-area{width:220px;background:var(--surface);border-radius:14px;padding:14px 12px;border:1px solid var(--card);display:flex;flex-direction:column;gap:6px;align-self:flex-start;}
+#keyboard-area h3{font-size:13px;color:var(--muted);text-align:center;margin-bottom:4px;}
+.kb-section{margin-bottom:4px;}
+.kb-label{font-size:11px;color:var(--muted);margin-bottom:4px;padding-left:2px;}
+.kb-row{display:flex;flex-wrap:wrap;gap:4px;margin-bottom:2px;}
+.key{
+  width:34px;height:34px;
+  background:var(--key-bg);border:1px solid var(--key-border);
+  border-radius:6px;color:var(--text);
+  font-size:14px;font-family:'Noto Sans KR',sans-serif;font-weight:600;
+  cursor:pointer;display:flex;align-items:center;justify-content:center;
+  transition:background 0.15s,border-color 0.15s,transform 0.1s;
+  user-select:none;-webkit-tap-highlight-color:transparent;
+}
+.key:hover:not(:disabled){background:#3a3a6a;transform:scale(1.08);}
+.key:active:not(:disabled){transform:scale(0.93);}
+.key.hit{background:#1a4a2a;border-color:var(--green);color:var(--green);}
+.key.miss{background:#3a1a1a;border-color:var(--red);color:#774444;cursor:default;}
+.key:disabled{cursor:default;opacity:0.5;}
+
+/* 오버레이 */
+#overlay{position:fixed;inset:0;background:rgba(0,0,0,0.75);display:flex;align-items:center;justify-content:center;z-index:50;opacity:0;pointer-events:none;transition:opacity 0.25s;}
+#overlay.show{opacity:1;pointer-events:all;}
+.modal{background:var(--surface);border:1px solid var(--card);border-radius:18px;padding:32px 36px;max-width:320px;width:90%;text-align:center;}
+.modal h2{font-size:22px;font-weight:900;margin-bottom:12px;}
+.modal .answer{font-size:30px;font-weight:900;letter-spacing:6px;margin:12px 0;}
+.modal p{font-size:14px;color:var(--muted);margin-bottom:6px;}
+.modal-btn{margin-top:18px;background:var(--accent);color:#fff;border:none;border-radius:10px;padding:11px 30px;font-size:16px;font-family:'Noto Sans KR',sans-serif;font-weight:700;cursor:pointer;}
+.modal-btn:hover{opacity:0.85;}
+
+@media(max-width:640px){
+  #main{flex-direction:column;}
+  #keyboard-area{width:100%;}
+  .kb-row{justify-content:center;}
+}
+</style>
+</head>
+<body>
+
+<header>
+  <h1>한국어 <span>행맨</span></h1>
+  <button id="new-btn" onclick="newGame()">새 게임</button>
+</header>
+
+<div id="main">
+  <div id="game-area">
+    <div id="info-card">
+      <div id="topic-line"></div>
+      <div id="lives-line"></div>
+    </div>
+    <div id="jamo-area"></div>
+    <div id="status"></div>
+    <div id="wrong-area">
+      <div id="wrong-title">틀린 자모</div>
+      <div id="wrong-list"></div>
+    </div>
+  </div>
+  <div id="keyboard-area">
+    <h3>자모 입력</h3>
+    <div id="keyboard"></div>
+  </div>
+</div>
+
+<div id="overlay">
+  <div class="modal" id="modal"></div>
+</div>
+
+<script>
+const WORDS = [
+  {w:"사자",   t:"동물"}, {w:"호랑이", t:"동물"}, {w:"코끼리", t:"동물"},
+  {w:"기린",   t:"동물"}, {w:"펭귄",   t:"동물"}, {w:"돌고래", t:"동물"},
+  {w:"치타",   t:"동물"}, {w:"늑대",   t:"동물"}, {w:"독수리", t:"동물"},
+  {w:"토끼",   t:"동물"}, {w:"여우",   t:"동물"}, {w:"다람쥐", t:"동물"},
+  {w:"사과",   t:"과일"}, {w:"바나나", t:"과일"}, {w:"포도",   t:"과일"},
+  {w:"수박",   t:"과일"}, {w:"딸기",   t:"과일"}, {w:"복숭아", t:"과일"},
+  {w:"키위",   t:"과일"}, {w:"망고",   t:"과일"}, {w:"참외",   t:"과일"},
+  {w:"하늘",   t:"자연"}, {w:"바다",   t:"자연"}, {w:"구름",   t:"자연"},
+  {w:"바람",   t:"자연"}, {w:"폭포",   t:"자연"}, {w:"무지개", t:"자연"},
+  {w:"서울",   t:"도시"}, {w:"부산",   t:"도시"}, {w:"제주",   t:"도시"},
+  {w:"축구",   t:"스포츠"},{w:"야구",  t:"스포츠"},{w:"농구",  t:"스포츠"},
+  {w:"태권도", t:"스포츠"},{w:"수영",  t:"스포츠"},{w:"배드민턴",t:"스포츠"},
+  {w:"김치",   t:"음식"}, {w:"비빔밥", t:"음식"}, {w:"삼겹살", t:"음식"},
+  {w:"떡볶이", t:"음식"}, {w:"냉면",   t:"음식"}, {w:"된장찌개",t:"음식"},
+  {w:"피아노", t:"악기"}, {w:"기타",   t:"악기"}, {w:"바이올린",t:"악기"},
+  {w:"드럼",   t:"악기"}, {w:"플루트", t:"악기"},
+  {w:"봄",     t:"계절"}, {w:"여름",   t:"계절"}, {w:"가을",   t:"계절"}, {w:"겨울",t:"계절"},
+];
+
+const MAX_WRONG = 6;
+const CHO  = ['ㄱ','ㄲ','ㄴ','ㄷ','ㄸ','ㄹ','ㅁ','ㅂ','ㅃ','ㅅ','ㅆ','ㅇ','ㅈ','ㅉ','ㅊ','ㅋ','ㅌ','ㅍ','ㅎ'];
+const JUNG = ['ㅏ','ㅐ','ㅑ','ㅒ','ㅓ','ㅔ','ㅕ','ㅖ','ㅗ','ㅘ','ㅙ','ㅚ','ㅛ','ㅜ','ㅝ','ㅞ','ㅟ','ㅠ','ㅡ','ㅢ','ㅣ'];
+const JONG = ['','ㄱ','ㄲ','ㄳ','ㄴ','ㄵ','ㄶ','ㄷ','ㄹ','ㄺ','ㄻ','ㄼ','ㄽ','ㄾ','ㄿ','ㅀ','ㅁ','ㅂ','ㅄ','ㅅ','ㅆ','ㅇ','ㅈ','ㅊ','ㅋ','ㅌ','ㅍ','ㅎ'];
+
+const KB_CONS  = ['ㄱ','ㄲ','ㄴ','ㄷ','ㄸ','ㄹ','ㅁ','ㅂ','ㅃ','ㅅ','ㅆ','ㅇ','ㅈ','ㅉ','ㅊ','ㅋ','ㅌ','ㅍ','ㅎ'];
+const KB_VOWEL = ['ㅏ','ㅐ','ㅑ','ㅒ','ㅓ','ㅔ','ㅕ','ㅖ','ㅗ','ㅛ','ㅜ','ㅠ','ㅡ','ㅢ','ㅣ'];
+
+function decompose(word) {
+  const arr = [];
+  for (const ch of word) {
+    const code = ch.charCodeAt(0);
+    if (code >= 0xAC00 && code <= 0xD7A3) {
+      const off = code - 0xAC00;
+      arr.push(CHO[Math.floor(off / (21*28))]);
+      arr.push(JUNG[Math.floor((off % (21*28)) / 28)]);
+      const ji = off % 28;
+      if (ji !== 0) arr.push(JONG[ji]);
+    } else { arr.push(ch); }
+  }
+  return arr;
+}
+
+// 글자별 자모 배열
+function decomposeByChar(word) {
+  return [...word].map(ch => {
+    const code = ch.charCodeAt(0);
+    if (code >= 0xAC00 && code <= 0xD7A3) {
+      const off = code - 0xAC00;
+      const res = [CHO[Math.floor(off/(21*28))], JUNG[Math.floor((off%(21*28))/28)]];
+      const ji = off%28; if(ji!==0) res.push(JONG[ji]);
+      return res;
+    }
+    return [ch];
+  });
+}
+
+let word, topic, allJamos, charJamos, guessed, wrongSet, wrongCount, over;
+
+function newGame() {
+  const entry = WORDS[Math.floor(Math.random()*WORDS.length)];
+  word      = entry.w;
+  topic     = entry.t;
+  allJamos  = decompose(word);
+  charJamos = decomposeByChar(word);
+  guessed   = new Set();
+  wrongSet  = new Set();
+  wrongCount = 0;
+  over      = false;
+
+  document.getElementById('overlay').classList.remove('show');
+  document.getElementById('status').textContent = '';
+  document.getElementById('status').style.color = '';
+
+  renderInfo();
+  renderJamos();
+  renderWrong();
+  renderKeyboard();
+}
+
+function renderInfo() {
+  document.getElementById('topic-line').textContent = topic + ',  ' + word.length + '글자';
+  const rem = MAX_WRONG - wrongCount;
+  const el = document.getElementById('lives-line');
+  el.innerHTML = '남은 기회: <span id="lives-num">' + rem + '번</span>';
+  const num = document.getElementById('lives-num');
+  num.style.color = rem <= 2 ? '#e74c3c' : rem <= 4 ? '#f39c12' : '#2ecc71';
+}
+
+function renderJamos() {
+  const area = document.getElementById('jamo-area');
+  area.innerHTML = '';
+  charJamos.forEach((jamos, gi) => {
+    const group = document.createElement('div');
+    group.className = 'char-group';
+    jamos.forEach(jamo => {
+      const tile = document.createElement('div');
+      tile.className = 'jamo-tile' + (guessed.has(jamo) ? (over && wrongCount>=MAX_WRONG ? ' correct-end' : ' revealed') : '');
+      tile.textContent = guessed.has(jamo) ? jamo : '_';
+      group.appendChild(tile);
+    });
+    area.appendChild(group);
+    if (gi < charJamos.length-1) {
+      const sep = document.createElement('div');
+      sep.className = 'char-sep';
+      area.appendChild(sep);
+    }
+  });
+}
+
+function renderWrong() {
+  const list = document.getElementById('wrong-list');
+  list.innerHTML = '';
+  wrongSet.forEach(j => {
+    const badge = document.createElement('div');
+    badge.className = 'wrong-badge';
+    badge.textContent = j;
+    list.appendChild(badge);
+  });
+}
+
+function renderKeyboard() {
+  const kb = document.getElementById('keyboard');
+  kb.innerHTML = '';
+
+  // 자음 섹션
+  const consSection = document.createElement('div');
+  consSection.className = 'kb-section';
+  const consLabel = document.createElement('div');
+  consLabel.className = 'kb-label';
+  consLabel.textContent = '자음';
+  consSection.appendChild(consLabel);
+  const consRow = document.createElement('div');
+  consRow.className = 'kb-row';
+  KB_CONS.forEach(k => { consRow.appendChild(makeKey(k)); });
+  consSection.appendChild(consRow);
+  kb.appendChild(consSection);
+
+  // 모음 섹션
+  const vowSection = document.createElement('div');
+  vowSection.className = 'kb-section';
+  const vowLabel = document.createElement('div');
+  vowLabel.className = 'kb-label';
+  vowLabel.textContent = '모음';
+  vowSection.appendChild(vowLabel);
+  const vowRow = document.createElement('div');
+  vowRow.className = 'kb-row';
+  KB_VOWEL.forEach(k => { vowRow.appendChild(makeKey(k)); });
+  vowSection.appendChild(vowRow);
+  kb.appendChild(vowSection);
+}
+
+function makeKey(jamo) {
+  const btn = document.createElement('button');
+  btn.className = 'key';
+  btn.textContent = jamo;
+  if (guessed.has(jamo)) { btn.classList.add('hit'); btn.disabled = true; }
+  else if (wrongSet.has(jamo)) { btn.classList.add('miss'); btn.disabled = true; }
+  btn.addEventListener('click', () => onGuess(jamo));
+  return btn;
+}
+
+function onGuess(jamo) {
+  if (over) return;
+  if (guessed.has(jamo) || wrongSet.has(jamo)) return;
+
+  if (allJamos.includes(jamo)) {
+    guessed.add(jamo);
+    renderJamos();
+    updateKey(jamo, 'hit');
+
+    if (isComplete()) {
+      over = true;
+      setTimeout(() => showResult(true), 600);
+    }
+  } else {
+    wrongSet.add(jamo);
+    wrongCount++;
+    renderInfo();
+    renderWrong();
+    updateKey(jamo, 'miss');
+
+    if (wrongCount >= MAX_WRONG) {
+      over = true;
+      guessed = new Set(allJamos); // 정답 공개
+      renderJamos();
+      setTimeout(() => showResult(false), 400);
+    }
+  }
+}
+
+function updateKey(jamo, cls) {
+  document.querySelectorAll('.key').forEach(btn => {
+    if (btn.textContent === jamo) {
+      btn.classList.add(cls);
+      btn.disabled = true;
+    }
+  });
+}
+
+function isComplete() {
+  return allJamos.every(j => guessed.has(j));
+}
+
+function showResult(won) {
+  const modal = document.getElementById('modal');
+  modal.innerHTML = won
+    ? `<h2 style="color:#2ecc71">🎉 정답!</h2>
+       <div class="answer" style="color:#2ecc71">${word}</div>
+       <p>남은 기회 ${MAX_WRONG - wrongCount}번으로 맞추셨어요!</p>
+       <button class="modal-btn" onclick="newGame()">다시 시작</button>`
+    : `<h2 style="color:#e74c3c">💀 실패!</h2>
+       <p style="margin-bottom:4px">정답은:</p>
+       <div class="answer" style="color:#f5c842">${word}</div>
+       <p>주제: ${topic}</p>
+       <button class="modal-btn" onclick="newGame()">다시 시작</button>`;
+  document.getElementById('overlay').classList.add('show');
+}
+
+newGame();
+</script>
+</body>
+</html>
