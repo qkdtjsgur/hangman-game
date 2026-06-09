@@ -39,10 +39,17 @@ public class HangmanUI extends JFrame implements Game.GameListener {
         this.game.setListener(this);
 
         setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
-        setResizable(false);
+        
+        // 🟢 수정된 부분 1: 창 크기 조절 허용
+        setResizable(true); 
+        
         initUI();
         startNewGame();
         pack();
+        
+        // 🟢 수정된 부분 2: 창이 너무 작아져서 깨지지 않도록 최소 크기 설정
+        setMinimumSize(new Dimension(950, 600)); 
+        
         setLocationRelativeTo(null);
         setVisible(true);
     }
@@ -156,7 +163,10 @@ public class HangmanUI extends JFrame implements Game.GameListener {
     /** 오른쪽: 자모 키보드 */
     private KeyboardPanel buildKeyboard() {
         keyboardPanel = new KeyboardPanel();
-        keyboardPanel.setPreferredSize(new Dimension(240, 0));
+        
+        // 🟢 수정된 부분 3: 키보드가 잘리지 않도록 가로 길이를 240에서 420으로 넉넉하게 확장
+        keyboardPanel.setPreferredSize(new Dimension(420, 0));
+        
         keyboardPanel.setKeyListener(jamo -> game.guess(jamo));
         return keyboardPanel;
     }
